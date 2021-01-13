@@ -16,6 +16,9 @@ const openProjectCredentials = {
 	port: 5432,
 };
 
+const DEFAULT_CREATED_DATE = new Date('2016-06-01');
+const DEFAULT_UPDATED_DATE = new Date();
+
 /**
 TABLES TO MIGRATE:
 [ ] "ar_internal_metadata"
@@ -163,7 +166,7 @@ function transformVersionObject(version) {
 
 function transformTrackerObject(tracker) {
 	return {
-		id: tracker.id,
+		//id: tracker.id, // DO NOT INSERT ID, there's already existing rows
 		name: tracker.name,
 		// ?: tracker.is_in_chlog,
 		position: tracker.position,
@@ -174,13 +177,33 @@ function transformTrackerObject(tracker) {
 		// ?: tracker.fields_bits,
 		// ?: tracker.default_status_id,
 		// ?: tracker.description,
-		created_at: new Date('2016-06-01'),
-		updated_at: new Date(),
+		created_at: DEFAULT_CREATED_DATE,
+		updated_at: DEFAULT_UPDATED_DATE,
 		is_standard: false,
 		attribute_groups: null,
 		description: '',
 	};
 }
+
+function transformStatusesObject(status) {
+	return {
+		//id: status.id, // DO NOT INSERT ID, there's already existing rows
+		name: status.name,
+		is_closed: status.is_closed,
+		is_default: true,
+		position: status.position,
+		default_done_ratio: status.default_done_ratio,
+		created_at: DEFAULT_CREATED_DATE,
+		updated_at: DEFAULT_UPDATED_DATE,
+		color_id: 1,
+		is_readonly: false,
+	};
+}
+
+let OPTypesList = [];
+let RedmineTrackersList = [];
+let OPStatusesList = [];
+let RedmineStatusesList = [];
 
 (async () => {
 	/**
@@ -196,7 +219,7 @@ function transformTrackerObject(tracker) {
 	 * Migrate data
 	 */
 	// Trackers
-	const RedmineTrackersList = (await redminePool.query('SELECT * FROM trackers')).rows;
+	RedmineTrackersList = (await redminePool.query('SELECT * FROM trackers')).rows;
 	for(const RedmineTracker of RedmineTrackersList) {
 		if((await openProjectPool.query('SELECT * FROM types WHERE name = $1', [RedmineTracker.name])).rows.length === 0) {
 			console.log('Inserting tracker/type ' + RedmineTracker.name);
@@ -204,7 +227,18 @@ function transformTrackerObject(tracker) {
 			await openProjectPool.query(query, values);
 		}
 	}
-	const OPTypesList = (await openProjectPool.query('SELECT * FROM types')).rows;
+	OPTypesList = (await openProjectPool.query('SELECT * FROM types')).rows;
+
+	// Trackers
+	RedmineStatusesList = (await redminePool.query('SELECT * FROM issue_statuses')).rows;
+	for(const RedmineStatus of RedmineStatusesList) {
+		if((await openProjectPool.query('SELECT * FROM statuses WHERE name = $1', [RedmineStatus.name])).rows.length === 0) {
+			console.log('Inserting status ' + RedmineStatus.name);
+			const [query, values] = buildInsertQuery('statuses', transformStatusesObject(RedmineStatus));
+			await openProjectPool.query(query, values);
+		}
+	}
+	OPStatusesList = (await openProjectPool.query('SELECT * FROM statuses')).rows;
 
 	// Projects
 	const projectList = (await redminePool.query('SELECT * FROM projects')).rows;
