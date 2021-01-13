@@ -44,9 +44,9 @@ TABLES TO MIGRATE:
 [ ] "imports"
 [ ] "issue_categories"
 [ ] "issue_relations"
-[ ] "issue_statuses"
+[X] "issue_statuses"
 [ ] "import_items"
-[ ] "issues"
+[/] "issues"
 [ ] "journal_details"
 [ ] "journals"
 [ ] "member_roles"
@@ -204,16 +204,94 @@ let OPTypesList = [];
 let RedmineTrackersList = [];
 let OPStatusesList = [];
 let RedmineStatusesList = [];
+let OPEnum = [];
+let RedmineEnum = [];
+let issuePos = 0;
+function transformIssueObject(issue) {
+	// Tracker
+	const tracker = RedmineTrackersList.filter((elt) => elt.id == issue.tracker_id)[0];
+	if(typeof tracker === 'undefined' || typeof tracker.id === 'undefined') {
+		throw new Error('invalid tracker "' + issue.tracker_id + '".');
+	}
+
+	const type = OPTypesList.filter((elt) => elt.name === tracker.name)[0];
+	if(typeof type === 'undefined' || typeof type.id === 'undefined') {
+		throw new Error('invalid type "' + issue.tracker_id + '".');
+	}
+
+	// Status
+	const redstatus = RedmineStatusesList.filter((elt) => elt.id == issue.status_id)[0];
+	if(typeof redstatus === 'undefined' || typeof redstatus.id === 'undefined') {
+		throw new Error('invalid redmine status "' + issue.status_id + '".');
+	}
+
+	const opstatus = OPStatusesList.filter((elt) => elt.name === redstatus.name)[0];
+	if(typeof opstatus === 'undefined' || typeof opstatus.id === 'undefined') {
+		throw new Error('invalid openproject status "' + issue.status_id + '".');
+	}
+
+	// Enumerations
+	const redenum = RedmineEnum.filter((elt) => elt.id == issue.priority_id)[0];
+	if(typeof redenum === 'undefined' || typeof redenum.id === 'undefined') {
+		throw new Error('invalid redmine status "' + issue.priority_id + '".');
+	}
+
+	const openum = OPEnum.filter((elt) => elt.name === redenum.name)[0];
+	if(typeof openum === 'undefined' || typeof openum.id === 'undefined') {
+		throw new Error('invalid openproject status "' + issue.priority_id + '".');
+	}
+
+	return {
+		id: issue.id,
+		type_id: type.id,
+		project_id: issue.project_id,
+		subject: issue.subject,
+		description: issue.description,
+		due_date: issue.due_date,
+		category_id: issue.category_id,
+		status_id: opstatus.id,
+		assigned_to_id: issue.assigned_to_id,
+		priority_id: openum.id,
+		version_id: issue.fixed_version_id,
+		author_id: issue.author_id,
+		lock_version: issue.lock_version,
+		created_at: issue.created_on,
+		updated_at: issue.updated_on,
+		start_date: issue.start_date,
+		done_ratio: issue.done_ratio,
+		estimated_hours: issue.estimated_hours,
+		// ?: issue.parent_id,
+		// ?: issue.root_id,
+		// ?: issue.lft,
+		// ?: issue.rgt,
+		// ?: issue.is_private,
+		// ?: issue.closed_on,
+		responsible_id: null,
+		budget_id: null,
+		position: issuePos++,
+		// story_points: TODO: GET FROM SP TABLE
+		// remaining_hours: TODO: CALCULATE
+		// derivated_estimated_hours: TODO: CALCULATE
+		schedule_manually: false,
+	};
+}
 
 (async () => {
 	/**
 	 * Clean db
 	 */
+
+	console.log('Cleaning issues');
+	await openProjectPool.query('DELETE FROM work_packages');
+
 	console.log('Cleaning versions');
 	await openProjectPool.query('DELETE FROM versions');
 
 	console.log('Cleaning projects');
 	await openProjectPool.query('DELETE FROM projects');
+
+	OPEnum = (await openProjectPool.query('SELECT * FROM enumerations')).rows;
+	RedmineEnum = (await openProjectPool.query('SELECT * FROM enumerations')).rows;
 
 	/**
 	 * Migrate data
@@ -242,7 +320,6 @@ let RedmineStatusesList = [];
 
 	// Projects
 	const projectList = (await redminePool.query('SELECT * FROM projects')).rows;
-
 	for(const project of projectList) {
 		console.log('Inserting project ' + project.name);
 
@@ -258,4 +335,13 @@ let RedmineStatusesList = [];
 			await openProjectPool.query(query, values);
 		}
 	}
+
+	// Issues
+	const issuesList = (await redminePool.query('SELECT * FROM issues')).rows;
+	for(const issue of issuesList) {
+		console.log('Inserting issue #' + issue.id);
+		const [query, values] = buildInsertQuery('work_packages', transformIssueObject(issue));
+		await openProjectPool.query(query, values);
+	}
+
 })();
