@@ -71,7 +71,7 @@ TABLES TO MIGRATE:
 [ ] "wiki_contents"
 [ ] "time_entries"
 [ ] "wiki_pages"
-[ ] "trackers"
+[X] "trackers"
 [ ] "wiki_redirects"
 [ ] "wikis"
 [ ] "workflows"
@@ -161,6 +161,27 @@ function transformVersionObject(version) {
 	};
 }
 
+function transformTrackerObject(tracker) {
+	return {
+		id: tracker.id,
+		name: tracker.name,
+		// ?: tracker.is_in_chlog,
+		position: tracker.position,
+		is_in_roadmap: tracker.is_in_roadmap,
+		is_milestone: false,
+		is_default: true,
+		color_id: 1,
+		// ?: tracker.fields_bits,
+		// ?: tracker.default_status_id,
+		// ?: tracker.description,
+		created_at: new Date('2016-06-01'),
+		updated_at: new Date(),
+		is_standard: false,
+		attribute_groups: null,
+		description: '',
+	};
+}
+
 (async () => {
 	/**
 	 * Clean db
@@ -174,6 +195,16 @@ function transformVersionObject(version) {
 	/**
 	 * Migrate data
 	 */
+	// Trackers
+	const RedmineTrackersList = (await redminePool.query('SELECT * FROM trackers')).rows;
+	for(const RedmineTracker of RedmineTrackersList) {
+		if((await openProjectPool.query('SELECT * FROM types WHERE name = $1', [RedmineTracker.name])).rows.length === 0) {
+			console.log('Inserting tracker/type ' + RedmineTracker.name);
+			const [query, values] = buildInsertQuery('types', transformTrackerObject(RedmineTracker));
+			await openProjectPool.query(query, values);
+		}
+	}
+	const OPTypesList = (await openProjectPool.query('SELECT * FROM types')).rows;
 
 	// Projects
 	const projectList = (await redminePool.query('SELECT * FROM projects')).rows;
