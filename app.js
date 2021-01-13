@@ -19,6 +19,14 @@ const openProjectCredentials = {
 const DEFAULT_CREATED_DATE = new Date('2016-06-01');
 const DEFAULT_UPDATED_DATE = new Date();
 
+const priorities = {
+	'Bas': 'Low',
+	'Normal': 'Low',
+	'Haut': 'Normal',
+	'Urgent' : 'High',
+	'Immédiat' : 'Immediate',
+};
+
 /**
 TABLES TO MIGRATE:
 [ ] "ar_internal_metadata"
@@ -72,7 +80,7 @@ TABLES TO MIGRATE:
 [X] "versions"
 [ ] "watchers"
 [ ] "wiki_contents"
-[ ] "time_entries"
+[X] "time_entries"
 [ ] "wiki_pages"
 [X] "trackers"
 [ ] "wiki_redirects"
@@ -276,10 +284,34 @@ function transformIssueObject(issue) {
 	};
 }
 
+function transformTimeEntriesObject(time_entries) {
+	return {
+		id: time_entries.id,
+		project_id: time_entries.project_id,
+		user_id: time_entries.user_id,
+		work_package_id: time_entries.issue_id,
+		hours: time_entries.hours,
+		comments: time_entries.comments,
+		activity_id: time_entries.activity_id,
+		spent_on: time_entries.spent_on,
+		tyear: time_entries.tyear,
+		tmonth: time_entries.tmonth,
+		tweek: time_entries.tweek,
+		created_at: time_entries.created_on,
+		updated_at: time_entries.updated_on,
+		// ?: time_entries.author_id,
+		overridden_costs: 0,
+		costs: 0,
+		rate_id: null,
+	};
+}
+
 (async () => {
 	/**
 	 * Clean db
 	 */
+	console.log('Cleaning time_entries');
+	await openProjectPool.query('DELETE FROM time_entries');
 
 	console.log('Cleaning issues');
 	await openProjectPool.query('DELETE FROM work_packages');
@@ -344,4 +376,11 @@ function transformIssueObject(issue) {
 		await openProjectPool.query(query, values);
 	}
 
+	// Time entries
+	const timeEntriesList = (await redminePool.query('SELECT * FROM time_entries')).rows;
+	for(const timeEntries of timeEntriesList) {
+		console.log('Inserting time_entries #' + timeEntries.id);
+		const [query, values] = buildInsertQuery('time_entries', transformTimeEntriesObject(timeEntries));
+		await openProjectPool.query(query, values);
+	}
 })();
