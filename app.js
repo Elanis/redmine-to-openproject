@@ -354,7 +354,7 @@ function transformTimeEntriesObject(time_entries) {
 	OPStatusesList = (await openProjectPool.query('SELECT * FROM statuses')).rows;
 
 	// Projects
-	const projectList = (await redminePool.query('SELECT * FROM projects')).rows;
+	const projectList = (await redminePool.query('SELECT * FROM projects ORDER BY id')).rows;
 	for(const project of projectList) {
 		console.log('Inserting project ' + project.name);
 
@@ -371,19 +371,48 @@ function transformTimeEntriesObject(time_entries) {
 		}
 	}
 
+	// Set sequence order
+	const versionList = (await redminePool.query('SELECT * FROM versions ORDER BY id')).rows;
+	if(versionList.length > 0) {
+		await openProjectPool.query('SELECT setval(\'versions_id_seq\', $1, true);', [parseInt(versionList[versionList.length - 1].id) + 1]);
+	} else {
+		await openProjectPool.query('SELECT setval(\'versions_id_seq\', $1, true);', 1);
+	}
+
+	// Set sequence order
+	if(projectList.length > 0) {
+		await openProjectPool.query('SELECT setval(\'projects_id_seq\', $1, true);', [parseInt(projectList[projectList.length - 1].id) + 1]);
+	} else {
+		await openProjectPool.query('SELECT setval(\'projects_id_seq\', $1, true);', 1);
+	}
+
 	// Issues
-	const issuesList = (await redminePool.query('SELECT * FROM issues')).rows;
+	const issuesList = (await redminePool.query('SELECT * FROM issues ORDER BY id')).rows;
 	for(const issue of issuesList) {
 		console.log('Inserting issue #' + issue.id);
 		const [query, values] = buildInsertQuery('work_packages', transformIssueObject(issue));
 		await openProjectPool.query(query, values);
 	}
 
+	// Set sequence order
+	if(issuesList.length > 0) {
+		await openProjectPool.query('SELECT setval(\'work_packages_id_seq\', $1, true);', [parseInt(issuesList[issuesList.length - 1].id) + 1]);
+	} else {
+		await openProjectPool.query('SELECT setval(\'work_packages_id_seq\', $1, true);', 1);
+	}
+
 	// Time entries
-	const timeEntriesList = (await redminePool.query('SELECT * FROM time_entries')).rows;
+	const timeEntriesList = (await redminePool.query('SELECT * FROM time_entries ORDER BY id')).rows;
 	for(const timeEntries of timeEntriesList) {
 		console.log('Inserting time_entries #' + timeEntries.id);
 		const [query, values] = buildInsertQuery('time_entries', transformTimeEntriesObject(timeEntries));
 		await openProjectPool.query(query, values);
+	}
+
+	// Set sequence order
+	if(timeEntriesList.length > 0) {
+		await openProjectPool.query('SELECT setval(\'time_entries_id_seq\', $1, true);', [parseInt(timeEntriesList[timeEntriesList.length - 1].id) + 1]);
+	} else {
+		await openProjectPool.query('SELECT setval(\'time_entries_id_seq\', $1, true);', 1);
 	}
 })();
