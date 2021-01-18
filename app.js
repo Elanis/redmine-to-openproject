@@ -100,6 +100,9 @@ TABLES TO MIGRATE:
 const redminePool = new pg.Pool(redmineCredentials);
 const openProjectPool = new pg.Pool(openProjectCredentials);
 
+redminePool.on('error', console.log);
+openProjectPool.on('error', console.log);
+
 function buildUpdateQuery(table, fields) {
 	let query = 'UPDATE "' + table + '" SET';
 	const values = [];
