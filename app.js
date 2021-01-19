@@ -427,20 +427,24 @@ function transformTimeEntriesObject(time_entries) {
 	}
 
 	// Activate all types on all projects
+	console.log('Activate all types on all projects ...');
 	for(const project of projectList) {
 		for(const types of OPTypesList) {
-			console.log('Inserting (' + project.id + ', ' + types.id + ')');
+			//console.log('Inserting (' + project.id + ', ' + types.id + ')');
 			await openProjectPool.query('INSERT INTO projects_types (project_id, type_id) VALUES ($1, $2)', [project.id, types.id]);
 		}
 	}
+	console.log('All types on all projects has been activated !');
 
 	// Issues
 	const issuesList = (await redminePool.query('SELECT * FROM issues ORDER BY id')).rows;
+	console.log('Inserting issues ...');
 	for(const issue of issuesList) {
-		console.log('Inserting issue #' + issue.id);
+		//console.log('Inserting issue #' + issue.id);
 		const [query, values] = buildInsertQuery('work_packages', transformIssueObject(issue));
 		await openProjectPool.query(query, values);
 	}
+	console.log('Issues inserted !');
 
 	// Set sequence order
 	if(issuesList.length > 0) {
@@ -450,12 +454,14 @@ function transformTimeEntriesObject(time_entries) {
 	}
 
 	// Time entries
+	console.log('Inserting time_entries ...');
 	const timeEntriesList = (await redminePool.query('SELECT * FROM time_entries ORDER BY id')).rows;
 	for(const timeEntries of timeEntriesList) {
-		console.log('Inserting time_entries #' + timeEntries.id);
+		//console.log('Inserting time_entries #' + timeEntries.id);
 		const [query, values] = buildInsertQuery('time_entries', transformTimeEntriesObject(timeEntries));
 		await openProjectPool.query(query, values);
 	}
+	console.log('time_entries inserted !');
 
 	// Set sequence order
 	if(timeEntriesList.length > 0) {
