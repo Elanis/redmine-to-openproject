@@ -313,6 +313,12 @@ function transformTimeEntriesObject(time_entries) {
 	/**
 	 * Clean db
 	 */
+	console.log('Cleaning member_roles');
+	await openProjectPool.query('DELETE FROM member_roles');
+
+	console.log('Cleaning members');
+	await openProjectPool.query('DELETE FROM members');
+
 	console.log('Cleaning time_entries');
 	await openProjectPool.query('DELETE FROM time_entries');
 
@@ -357,6 +363,8 @@ function transformTimeEntriesObject(time_entries) {
 	OPStatusesList = (await openProjectPool.query('SELECT * FROM statuses')).rows;
 
 	// Projects
+	await openProjectPool.query('SELECT setval(\'member_roles_id_seq\', $1, true);', [1]);
+	await openProjectPool.query('SELECT setval(\'members_id_seq\', $1, true);', [1]);
 	const projectList = (await redminePool.query('SELECT * FROM projects ORDER BY id')).rows;
 	for(const project of projectList) {
 		console.log('Inserting project ' + project.name);
@@ -372,6 +380,12 @@ function transformTimeEntriesObject(time_entries) {
 			const [query, values] = buildInsertQuery('versions', transformVersionObject(version));
 			await openProjectPool.query(query, values);
 		}
+
+		// Assign project roles
+		await openProjectPool.query('INSERT INTO public.members(user_id, project_id, created_at, mail_notification, updated_at) VALUES ($1, $2, $3, $4, $5)',  [2 /* Default user */, project.id, DEFAULT_CREATED_DATE, false, DEFAULT_UPDATED_DATE]);
+		const lastInsertedRow = (await openProjectPool.query('SELECT * FROM members WHERE project_id = $1', [project.id])).rows[0];
+		await openProjectPool.query('INSERT INTO public.member_roles(member_id, role_id, inherited_from) VALUES ($1, $2, $3)',  [lastInsertedRow.id, 3 /* Project Admin */, null]);
+
 	}
 
 	// Set sequence order
