@@ -319,6 +319,9 @@ function transformTimeEntriesObject(time_entries) {
 	console.log('Cleaning issues');
 	await openProjectPool.query('DELETE FROM work_packages');
 
+	console.log('Cleaning projects_types');
+	await openProjectPool.query('DELETE FROM projects_types');
+
 	console.log('Cleaning versions');
 	await openProjectPool.query('DELETE FROM versions');
 
@@ -376,14 +379,21 @@ function transformTimeEntriesObject(time_entries) {
 	if(versionList.length > 0) {
 		await openProjectPool.query('SELECT setval(\'versions_id_seq\', $1, true);', [parseInt(versionList[versionList.length - 1].id) + 1]);
 	} else {
-		await openProjectPool.query('SELECT setval(\'versions_id_seq\', $1, true);', 1);
+		await openProjectPool.query('SELECT setval(\'versions_id_seq\', $1, true);', [1]);
 	}
 
-	// Set sequence order
 	if(projectList.length > 0) {
 		await openProjectPool.query('SELECT setval(\'projects_id_seq\', $1, true);', [parseInt(projectList[projectList.length - 1].id) + 1]);
 	} else {
-		await openProjectPool.query('SELECT setval(\'projects_id_seq\', $1, true);', 1);
+		await openProjectPool.query('SELECT setval(\'projects_id_seq\', $1, true);', [1]);
+	}
+
+	// Activate all types on all projects
+	for(const project of projectList) {
+		for(const types of OPTypesList) {
+			console.log('Inserting (' + project.id + ', ' + types.id + ')');
+			await openProjectPool.query('INSERT INTO projects_types (project_id, type_id) VALUES ($1, $2)', [project.id, types.id]);
+		}
 	}
 
 	// Issues
@@ -398,7 +408,7 @@ function transformTimeEntriesObject(time_entries) {
 	if(issuesList.length > 0) {
 		await openProjectPool.query('SELECT setval(\'work_packages_id_seq\', $1, true);', [parseInt(issuesList[issuesList.length - 1].id) + 1]);
 	} else {
-		await openProjectPool.query('SELECT setval(\'work_packages_id_seq\', $1, true);', 1);
+		await openProjectPool.query('SELECT setval(\'work_packages_id_seq\', $1, true);', [1]);
 	}
 
 	// Time entries
@@ -413,6 +423,6 @@ function transformTimeEntriesObject(time_entries) {
 	if(timeEntriesList.length > 0) {
 		await openProjectPool.query('SELECT setval(\'time_entries_id_seq\', $1, true);', [parseInt(timeEntriesList[timeEntriesList.length - 1].id) + 1]);
 	} else {
-		await openProjectPool.query('SELECT setval(\'time_entries_id_seq\', $1, true);', 1);
+		await openProjectPool.query('SELECT setval(\'time_entries_id_seq\', $1, true);', [1]);
 	}
 })();
