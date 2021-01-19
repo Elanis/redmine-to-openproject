@@ -313,6 +313,10 @@ function transformTimeEntriesObject(time_entries) {
 	/**
 	 * Clean db
 	 */
+
+	console.log('Cleaning project_statuses');
+	await openProjectPool.query('DELETE FROM project_statuses');
+
 	console.log('Cleaning member_roles');
 	await openProjectPool.query('DELETE FROM member_roles');
 
@@ -365,6 +369,8 @@ function transformTimeEntriesObject(time_entries) {
 	// Projects
 	await openProjectPool.query('SELECT setval(\'member_roles_id_seq\', $1, true);', [1]);
 	await openProjectPool.query('SELECT setval(\'members_id_seq\', $1, true);', [1]);
+	await openProjectPool.query('SELECT setval(\'project_statuses_id_seq\', $1, true);', [1]);
+
 	const projectList = (await redminePool.query('SELECT * FROM projects ORDER BY id')).rows;
 	for(const project of projectList) {
 		console.log('Inserting project ' + project.name);
