@@ -313,6 +313,8 @@ function transformTimeEntriesObject(time_entries) {
 	/**
 	 * Clean db
 	 */
+	console.log('Cleaning enabled_modules');
+	await openProjectPool.query('DELETE FROM enabled_modules');
 
 	console.log('Cleaning project_statuses');
 	await openProjectPool.query('DELETE FROM project_statuses');
@@ -392,6 +394,22 @@ function transformTimeEntriesObject(time_entries) {
 		const lastInsertedRow = (await openProjectPool.query('SELECT * FROM members WHERE project_id = $1', [project.id])).rows[0];
 		await openProjectPool.query('INSERT INTO public.member_roles(member_id, role_id, inherited_from) VALUES ($1, $2, $3)',  [lastInsertedRow.id, 3 /* Project Admin */, null]);
 
+		// Assign enabled_modules
+		const modules = [
+			'work_package_tracking',
+			'repository',
+			'calendar',
+			'documents',
+			'costs',
+			'meetings',
+			'backlogs',
+			'board_view',
+			'budgets',
+			'activity',
+		];
+		for(const moduleName of modules) {
+			await openProjectPool.query('INSERT INTO enabled_modules(project_id, name) VALUES($1, $2)', [project.id, moduleName]);
+		}
 	}
 
 	// Set sequence order
