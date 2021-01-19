@@ -372,6 +372,7 @@ function transformTimeEntriesObject(time_entries) {
 	await openProjectPool.query('SELECT setval(\'member_roles_id_seq\', $1, true);', [1]);
 	await openProjectPool.query('SELECT setval(\'members_id_seq\', $1, true);', [1]);
 	await openProjectPool.query('SELECT setval(\'project_statuses_id_seq\', $1, true);', [1]);
+	await openProjectPool.query('SELECT setval(\'enabled_modules_id_seq\', $1, true);', [1]);
 
 	const projectList = (await redminePool.query('SELECT * FROM projects ORDER BY id')).rows;
 	for(const project of projectList) {
