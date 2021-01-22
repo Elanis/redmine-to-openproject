@@ -30,6 +30,19 @@ const priorities = {
 	'Immédiat' : 'Immediate',
 };
 
+const modules = [
+	'work_package_tracking',
+	'repository',
+	'calendar',
+	'documents',
+	'costs',
+	'meetings',
+	'backlogs',
+	'board_view',
+	'budgets',
+	'activity',
+];
+
 /**
 TABLES TO MIGRATE:
 [ ] "ar_internal_metadata"
@@ -49,7 +62,7 @@ TABLES TO MIGRATE:
 [ ] "custom_values"
 [ ] "documents"
 [ ] "email_addresses"
-[ ] "enabled_modules"
+[X] "enabled_modules"
 [ ] "enumerations"
 [ ] "groups_users"
 [ ] "imports"
@@ -57,18 +70,18 @@ TABLES TO MIGRATE:
 [ ] "issue_relations"
 [X] "issue_statuses"
 [ ] "import_items"
-[/] "issues"
+[X] "issues"
 [ ] "journal_details"
 [ ] "journals"
-[ ] "member_roles"
-[ ] "members"
+[X] "member_roles"
+[X] "members"
 [ ] "messages"
 [ ] "news"
 [ ] "open_id_authentication_associations"
 [ ] "open_id_authentication_nonces"
 [ ] "messenger_settings"
 [X] "projects"
-[ ] "projects_trackers"
+[X] "projects_trackers"
 [ ] "queries"
 [ ] "queries_roles"
 [ ] "repositories"
@@ -269,18 +282,6 @@ function transformIssueObject(issue) {
 		await openProjectPool.query('INSERT INTO public.member_roles(member_id, role_id, inherited_from) VALUES ($1, $2, $3)',  [lastInsertedRow.id, 3 /* Project Admin */, null]);
 
 		// Assign enabled_modules
-		const modules = [
-			'work_package_tracking',
-			'repository',
-			'calendar',
-			'documents',
-			'costs',
-			'meetings',
-			'backlogs',
-			'board_view',
-			'budgets',
-			'activity',
-		];
 		for(const moduleName of modules) {
 			await openProjectPool.query('INSERT INTO enabled_modules(project_id, name) VALUES($1, $2)', [project.id, moduleName]);
 		}
