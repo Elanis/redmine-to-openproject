@@ -301,14 +301,15 @@ function transformIssueObject(issue) {
 	}
 
 	// Activate all types on all projects
-	console.log('Activate all types on all projects ...');
-	for(const project of projectList) {
-		for(const types of OPTypesList) {
-			//console.log('Inserting (' + project.id + ', ' + types.id + ')');
-			await openProjectPool.query('INSERT INTO projects_types (project_id, type_id) VALUES ($1, $2)', [project.id, types.id]);
-		}
+	console.log('Activate types on projects ...');
+	const projectTypesAndTrackers = (await redminePool.query('SELECT * FROM projects_trackers')).rows;
+	for(const projectTypesAndTracker of projectTypesAndTrackers) {
+		const tracker = RedmineTrackersList.filter((elt) => elt.id == projectTypesAndTracker.tracker_id)[0];
+		const type = OPTypesList.filter((elt) => elt.name === tracker.name)[0];
+
+		await openProjectPool.query('INSERT INTO projects_types (project_id, type_id) VALUES ($1, $2)', [projectTypesAndTracker.project_id, type.id]);
 	}
-	console.log('All types on all projects has been activated !');
+	console.log('Types on projects has been activated !');
 
 	// Issues
 	const issuesList = (await redminePool.query('SELECT * FROM issues ORDER BY id')).rows;
