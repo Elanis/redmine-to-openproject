@@ -1,5 +1,8 @@
 import pg from 'pg';
 
+import ObjectConversion from './ObjectConversion.js';
+import QueryBuilder from './QueryBuilder.js';
+
 // CREDENTIALS
 const redmineCredentials = {
 	user: '',
@@ -103,114 +106,6 @@ const openProjectPool = new pg.Pool(openProjectCredentials);
 redminePool.on('error', console.log);
 openProjectPool.on('error', console.log);
 
-function buildUpdateQuery(table, fields) {
-	let query = 'UPDATE "' + table + '" SET';
-	const values = [];
-
-	for(const key in fields) {
-		values.push(fields[key]);
-		query += ' "' + key + '" = $' + values.length + ',';
-	}
-
-	query = query.substr(0, query.length-1);
-
-	return [query, values];
-}
-
-function buildInsertQuery(table, fields) {
-	let query = 'INSERT INTO "' + table + '"(';
-	let columns = '';
-	let valueStr = '';
-	const values = [];
-
-	for(const key in fields) {
-		values.push(fields[key]);
-
-		columns += '"' + key + '",';
-		valueStr += '$' + values.length + ',';
-	}
-
-	columns = columns.substr(0, columns.length - 1);
-	valueStr = valueStr.substr(0, valueStr.length - 1);
-
-	query += columns + ') VALUES (' + valueStr + ')';
-
-	return [query, values];
-}
-
-function transformProjectObject(project) {
-	return {
-		id: project.id,
-		name: project.name,
-		description: project.description,
-		public: project.is_public,
-		parent_id: project.parent_id,
-		created_at: project.created_on,
-		updated_at: project.updated_on,
-		identifier: project.identifier,
-		lft: project.lft,
-		rgt: project.rgt,
-		templated: false,
-		// ?: project.homepage,
-		// ?: project.status,
-		// ?: project.inherit_members,
-		// ?: project.default_version_id,
-		// ?: project.default_assigned_to_id,
-	};
-}
-
-function transformVersionObject(version) {
-	return {
-		id: version.id,
-		project_id: version.project_id,
-		name: version.name,
-		description: version.description,
-		effective_date: version.effective_date,
-		created_at: version.created_on,
-		updated_at: version.updated_on,
-		wiki_page_title: version.wiki_page_title,
-		status: version.status,
-		sharing: version.sharing,
-		// ?: version.start_date,
-	};
-}
-
-function transformTrackerObject(tracker) {
-	return {
-		//id: tracker.id, // DO NOT INSERT ID, there's already existing rows
-		name: tracker.name,
-		// ?: tracker.is_in_chlog,
-		position: tracker.position,
-		is_in_roadmap: tracker.is_in_roadmap,
-		is_milestone: false,
-		is_default: true,
-		color_id: 1,
-		// ?: tracker.fields_bits,
-		// ?: tracker.default_status_id,
-		// ?: tracker.description,
-		created_at: DEFAULT_CREATED_DATE,
-		updated_at: DEFAULT_UPDATED_DATE,
-		is_standard: false,
-		attribute_groups: null,
-		description: '',
-	};
-}
-
-function transformStatusesObject(status) {
-	return {
-		//id: status.id, // DO NOT INSERT ID, there's already existing rows
-		name: status.name,
-		is_closed: status.is_closed,
-		is_default: true,
-		position: status.position,
-		default_done_ratio: status.default_done_ratio,
-		created_at: DEFAULT_CREATED_DATE,
-		updated_at: DEFAULT_UPDATED_DATE,
-		color_id: 1,
-		is_readonly: false,
-	};
-}
-
 let OPTypesList = [];
 let RedmineTrackersList = [];
 let OPStatusesList = [];
@@ -287,28 +182,6 @@ function transformIssueObject(issue) {
 	};
 }
 
-function transformTimeEntriesObject(time_entries) {
-	return {
-		id: time_entries.id,
-		project_id: time_entries.project_id,
-		user_id: time_entries.user_id,
-		work_package_id: time_entries.issue_id,
-		hours: time_entries.hours,
-		comments: time_entries.comments,
-		activity_id: time_entries.activity_id,
-		spent_on: time_entries.spent_on,
-		tyear: time_entries.tyear,
-		tmonth: time_entries.tmonth,
-		tweek: time_entries.tweek,
-		created_at: time_entries.created_on,
-		updated_at: time_entries.updated_on,
-		// ?: time_entries.author_id,
-		overridden_costs: 0,
-		costs: 0,
-		rate_id: null,
-	};
-}
-
 (async () => {
 	/**
 	 * Clean db
@@ -351,7 +224,7 @@ function transformTimeEntriesObject(time_entries) {
 	for(const RedmineTracker of RedmineTrackersList) {
 		if((await openProjectPool.query('SELECT * FROM types WHERE name = $1', [RedmineTracker.name])).rows.length === 0) {
 			console.log('Inserting tracker/type ' + RedmineTracker.name);
-			const [query, values] = buildInsertQuery('types', transformTrackerObject(RedmineTracker));
+			const [query, values] = QueryBuilder.buildInsertQuery('types', ObjectConversion.RedmineTrackerToOPType(RedmineTracker));
 			await openProjectPool.query(query, values);
 		}
 	}
@@ -362,7 +235,7 @@ function transformTimeEntriesObject(time_entries) {
 	for(const RedmineStatus of RedmineStatusesList) {
 		if((await openProjectPool.query('SELECT * FROM statuses WHERE name = $1', [RedmineStatus.name])).rows.length === 0) {
 			console.log('Inserting status ' + RedmineStatus.name);
-			const [query, values] = buildInsertQuery('statuses', transformStatusesObject(RedmineStatus));
+			const [query, values] = QueryBuilder.buildInsertQuery('statuses', ObjectConversion.RedmineIssueStatusToOPStatus(RedmineStatus));
 			await openProjectPool.query(query, values);
 		}
 	}
@@ -378,7 +251,7 @@ function transformTimeEntriesObject(time_entries) {
 	for(const project of projectList) {
 		console.log('Inserting project ' + project.name);
 
-		const [query, values] = buildInsertQuery('projects', transformProjectObject(project));
+		const [query, values] = QueryBuilder.buildInsertQuery('projects', ObjectConversion.RedmineProjectToOPProject(project));
 		await openProjectPool.query(query, values);
 
 		// Versions
@@ -386,7 +259,7 @@ function transformTimeEntriesObject(time_entries) {
 		for(const version of versionList) {
 			console.log('  Inserting version ' + version.name);
 
-			const [query, values] = buildInsertQuery('versions', transformVersionObject(version));
+			const [query, values] = QueryBuilder.buildInsertQuery('versions', ObjectConversion.RedmineVersionToOPVersion(version));
 			await openProjectPool.query(query, values);
 		}
 
@@ -442,7 +315,7 @@ function transformTimeEntriesObject(time_entries) {
 	console.log('Inserting issues ...');
 	for(const issue of issuesList) {
 		//console.log('Inserting issue #' + issue.id);
-		const [query, values] = buildInsertQuery('work_packages', transformIssueObject(issue));
+		const [query, values] = QueryBuilder.buildInsertQuery('work_packages', transformIssueObject(issue));
 		await openProjectPool.query(query, values);
 	}
 	console.log('Issues inserted !');
@@ -459,7 +332,7 @@ function transformTimeEntriesObject(time_entries) {
 	const timeEntriesList = (await redminePool.query('SELECT * FROM time_entries ORDER BY id')).rows;
 	for(const timeEntries of timeEntriesList) {
 		//console.log('Inserting time_entries #' + timeEntries.id);
-		const [query, values] = buildInsertQuery('time_entries', transformTimeEntriesObject(timeEntries));
+		const [query, values] = QueryBuilder.buildInsertQuery('time_entries', ObjectConversion.RedmineTimeEntriesToOPTimeEntries(timeEntries));
 		await openProjectPool.query(query, values);
 	}
 	console.log('time_entries inserted !');
