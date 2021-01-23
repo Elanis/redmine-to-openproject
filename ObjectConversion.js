@@ -93,4 +93,22 @@ export default class ObjectConversion {
 			rate_id: null,
 		};
 	}
+
+	static createParentRelationship(issueId, parentId, hierarchy) {
+		return {
+			//id: ?, // DO NOT INSERT ID, there's already existing rows
+			from_id: parentId,
+			to_id: issueId,
+			delay: null,
+			description: null,
+			hierarchy,
+			relates: 0,
+			duplicates: 0,
+			blocks: 0,
+			follows: 0,
+			includes: 0,
+			requires: 0,
+			count: 1,
+		};
+	}
 }

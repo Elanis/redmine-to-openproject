@@ -202,6 +202,9 @@ function transformIssueObject(issue) {
 	console.log('Cleaning enabled_modules');
 	await openProjectPool.query('DELETE FROM enabled_modules');
 
+	console.log('Cleaning relations');
+	await openProjectPool.query('DELETE FROM relations');
+
 	console.log('Cleaning project_statuses');
 	await openProjectPool.query('DELETE FROM project_statuses');
 
@@ -313,12 +316,18 @@ function transformIssueObject(issue) {
 	console.log('Types on projects has been activated !');
 
 	// Issues
+	await openProjectPool.query('SELECT setval(\'relations_id_seq\', $1, true);', [1]);
 	const issuesList = (await redminePool.query('SELECT * FROM issues ORDER BY id')).rows;
 	console.log('Inserting issues ...');
 	for(const issue of issuesList) {
 		//console.log('Inserting issue #' + issue.id);
 		const [query, values] = QueryBuilder.buildInsertQuery('work_packages', transformIssueObject(issue));
 		await openProjectPool.query(query, values);
+
+		if(issue.parent_id !== null && issue.parent_id != 0) {
+			const [queryParent, valuesParent] = QueryBuilder.buildInsertQuery('relations', ObjectConversion.createParentRelationship(issue.id, issue.parent_id, 1));
+			await openProjectPool.query(queryParent, valuesParent);
+		}
 	}
 	console.log('Issues inserted !');
 
