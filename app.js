@@ -152,12 +152,12 @@ function transformIssueObject(issue) {
 	// Enumerations
 	const redenum = RedmineEnum.filter((elt) => elt.id == issue.priority_id)[0];
 	if(typeof redenum === 'undefined' || typeof redenum.id === 'undefined') {
-		throw new Error('invalid redmine status "' + issue.priority_id + '".');
+		throw new Error('invalid redmine priority "' + issue.priority_id + '".');
 	}
 
-	const openum = OPEnum.filter((elt) => elt.name === redenum.name)[0];
+	const openum = OPEnum.filter((elt) => elt.name === priorities[redenum.name])[0];
 	if(typeof openum === 'undefined' || typeof openum.id === 'undefined') {
-		throw new Error('invalid openproject status "' + issue.priority_id + '".');
+		throw new Error('invalid openproject priority "' + issue.priority_id + '".');
 	}
 
 	return {
@@ -230,7 +230,7 @@ function transformIssueObject(issue) {
 	await openProjectPool.query('DELETE FROM projects');
 
 	OPEnum = (await openProjectPool.query('SELECT * FROM enumerations')).rows;
-	RedmineEnum = (await openProjectPool.query('SELECT * FROM enumerations')).rows;
+	RedmineEnum = (await redminePool.query('SELECT * FROM enumerations')).rows;
 
 	/**
 	 * Migrate data
