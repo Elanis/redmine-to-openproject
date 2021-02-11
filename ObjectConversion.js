@@ -12,11 +12,11 @@ export default class ObjectConversion {
 			lft: project.lft,
 			rgt: project.rgt,
 			templated: false,
-			// ?: project.homepage,
-			// ?: project.status,
-			// ?: project.inherit_members,
-			// ?: project.default_version_id,
-			// ?: project.default_assigned_to_id,
+			// ?: project.homepage, // @TODO
+			// ?: project.status, // @TODO
+			// ?: project.inherit_members, // @TODO
+			// ?: project.default_version_id, // @TODO
+			// ?: project.default_assigned_to_id, // @TODO
 		};
 	}
 
@@ -32,7 +32,7 @@ export default class ObjectConversion {
 			wiki_page_title: version.wiki_page_title,
 			status: version.status,
 			sharing: version.sharing,
-			// ?: version.start_date,
+			start_date: version.start_date,
 		};
 	}
 
@@ -40,15 +40,15 @@ export default class ObjectConversion {
 		return {
 			//id: tracker.id, // DO NOT INSERT ID, there's already existing rows
 			name: tracker.name,
-			// ?: tracker.is_in_chlog,
+			// ?: tracker.is_in_chlog, // @TODO
 			position: tracker.position,
 			is_in_roadmap: tracker.is_in_roadmap,
 			is_milestone: false,
 			is_default: true,
 			color_id: 1,
-			// ?: tracker.fields_bits,
-			// ?: tracker.default_status_id,
-			// ?: tracker.description,
+			// ?: tracker.fields_bits, // @TODO
+			// ?: tracker.default_status_id, // @TODO
+			// ?: tracker.description, // @TODO
 			created_at: DEFAULT_CREATED_DATE,
 			updated_at: DEFAULT_UPDATED_DATE,
 			is_standard: false,
@@ -87,7 +87,7 @@ export default class ObjectConversion {
 			tweek: time_entries.tweek,
 			created_at: time_entries.created_on,
 			updated_at: time_entries.updated_on,
-			// ?: time_entries.author_id,
+			// ?: time_entries.author_id, // Author is user_id
 			overridden_costs: 0,
 			costs: 0,
 			rate_id: null,

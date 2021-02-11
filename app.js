@@ -184,11 +184,11 @@ function transformIssueObject(issue) {
 		// ?: issue.lft, // Done with position
 		// ?: issue.rgt, // Done with position
 		// ?: issue.is_private, // !!! Not existing in openproject !!!
-		// ?: issue.closed_on,
+		// ?: issue.closed_on, // Probably managed by history or based on last update
 		responsible_id: null,
 		budget_id: null,
 		position: issuePos++,
-		// story_points: TODO: GET FROM SP TABLE
+		// story_points: @TODO: GET FROM SP TABLE if the plugin exists
 		// remaining_hours: TODO: CALCULATE
 		// derivated_estimated_hours: TODO: CALCULATE
 		schedule_manually: false,
