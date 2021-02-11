@@ -324,6 +324,9 @@ function transformIssueObject(issue) {
 		const [query, values] = QueryBuilder.buildInsertQuery('work_packages', transformIssueObject(issue));
 		await openProjectPool.query(query, values);
 
+		const [queryRelToItself, valuesRelToItself] = QueryBuilder.buildInsertQuery('relations', ObjectConversion.createParentRelationship(issue.id, issue.id, 0));
+		await openProjectPool.query(queryRelToItself, valuesRelToItself);
+
 		if(issue.parent_id !== null && issue.parent_id != 0) {
 			const [queryParent, valuesParent] = QueryBuilder.buildInsertQuery('relations', ObjectConversion.createParentRelationship(issue.id, issue.parent_id, 1));
 			await openProjectPool.query(queryParent, valuesParent);
