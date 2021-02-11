@@ -179,11 +179,11 @@ function transformIssueObject(issue) {
 		start_date: issue.start_date,
 		done_ratio: issue.done_ratio,
 		estimated_hours: issue.estimated_hours,
-		// ?: issue.parent_id,
-		// ?: issue.root_id,
-		// ?: issue.lft,
-		// ?: issue.rgt,
-		// ?: issue.is_private,
+		// ?: issue.parent_id, // Done with ObjectConversion.createParentRelationship() later
+		// ?: issue.root_id, // Relation system manage that
+		// ?: issue.lft, // Done with position
+		// ?: issue.rgt, // Done with position
+		// ?: issue.is_private, // !!! Not existing in openproject !!!
 		// ?: issue.closed_on,
 		responsible_id: null,
 		budget_id: null,

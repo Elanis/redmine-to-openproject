@@ -6,6 +6,8 @@
 This project has been tested only with one instance, don't forget to backup BOTH of your databases before trying this migration  
 This migration system doesn't migrate every table, I only written migration code for the tables I needed  
 
+**Warning²:** Private tasks doesn't exists in openproject, that means if you use this tool, all tasks can be seen by anyone accessing to the project !
+
 ## Versions used
 
 Redmine 4.1.1-stable  
