@@ -316,15 +316,35 @@ function transformIssueObject(issue) {
 			await openProjectPool.query(query, values);
 		}
 
-		// Assign project roles
-		await openProjectPool.query('INSERT INTO public.members(user_id, project_id, created_at, mail_notification, updated_at) VALUES ($1, $2, $3, $4, $5)',  [2 /* Default user */, project.id, DEFAULT_CREATED_DATE, false, DEFAULT_UPDATED_DATE]);
-		const lastInsertedRow = (await openProjectPool.query('SELECT * FROM members WHERE project_id = $1', [project.id])).rows[0];
-		await openProjectPool.query('INSERT INTO public.member_roles(member_id, role_id, inherited_from) VALUES ($1, $2, $3)',  [lastInsertedRow.id, 3 /* Project Admin */, null]);
+		let userId = 2; // Default user because redmine doesn't have
 
 		// Assign enabled_modules
 		for(const moduleName of modules) {
 			await openProjectPool.query('INSERT INTO enabled_modules(project_id, name) VALUES($1, $2)', [project.id, moduleName]);
 		}
+	}
+
+	// Assign project roles
+	const RedmineMembers = (await redminePool.query('SELECT * FROM members')).rows;
+	for(const RedmineMember of RedmineMembers) {
+		let userId = RedmineMember.user_id;
+
+		// Admin account
+		if(userId == 1) {
+			userId = 2;
+		}
+
+		await openProjectPool.query(
+			'INSERT INTO public.members(id, user_id, project_id, created_at, mail_notification, updated_at) VALUES ($1, $2, $3, $4, $5, $6)', 
+			[RedmineMember.id, userId, RedmineMember.project_id, RedmineMember.created_on, false, RedmineMember.created_on ]
+		);
+	}
+
+	const RedmineMemberRoles = (await redminePool.query('SELECT * FROM member_roles')).rows;
+	for(const RedmineMemberRole of RedmineMemberRoles) {
+		await openProjectPool.query(
+			'INSERT INTO public.member_roles(id, member_id, role_id, inherited_from) VALUES ($1, $2, $3, $4)',
+			[RedmineMemberRole.id, RedmineMemberRole.member_id, RedmineMemberRole.role_id, RedmineMemberRole.inherited_from]);
 	}
 
 	// Set sequence order
