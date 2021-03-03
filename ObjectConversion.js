@@ -111,4 +111,53 @@ export default class ObjectConversion {
 			count: 1,
 		};
 	}
+
+	static RedmineUserToOpenProjectUser(user, mail) {
+		/*
+		hashed_password, => Table "user_passwords"
+		salt, => Table "user_passwords"
+		passwd_changed_on => Table "user_passwords"
+		*/
+
+		return {
+			id: user.id,
+			login: user.login,
+			firstname: user.firstname,
+			lastname: user.lastname,
+			mail,
+			admin: user.admin,
+			status: user.status,
+			last_login_on: user.last_login_on,
+			language: user.language,
+			auth_source_id: user.auth_source_id, // @TODO: migrate auth_source table
+			created_at: user.created_on,
+			updated_at: user.updated_on,
+			type: user.type,
+			identity_url: user.identity_url,
+			mail_notification: user.mail_notification,
+			first_login: true,
+			force_password_change: user.must_change_passwd,
+			failed_login_count: 0, // Not existing on redmine
+			last_failed_login_on: null, // Not existing on redmine
+			consented_at: null, // Not existing on redmine
+		};
+	}
+
+	static RedmineUserToOpenProjectUserPassword(user) {
+		/*
+		hashed_password, => Table "user_passwords"
+		salt, => Table "user_passwords"
+		passwd_changed_on => Table "user_passwords"
+		*/
+
+		return {
+			id: user.id,
+			user_id: user.id,
+			hashed_password: user.hashed_password,
+			salt: user.salt,
+			created_at: user.passwd_changed_on,
+			updated_at: user.passwd_changed_on,
+			type: 'UserPassword::SHA1'
+		};
+	}
 }

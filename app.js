@@ -61,7 +61,7 @@ TABLES TO MIGRATE:
 [ ] "custom_fields_trackers"
 [ ] "custom_values"
 [ ] "documents"
-[ ] "email_addresses"
+[X] "email_addresses"
 [X] "enabled_modules"
 [ ] "enumerations"
 [ ] "groups_users"
@@ -90,9 +90,9 @@ TABLES TO MIGRATE:
 [ ] "schema_migrations"
 [ ] "settings"
 [ ] "tokens"
-[ ] "user_preferences"
+[X] "user_preferences"
 [ ] "wiki_content_versions"
-[ ] "users"
+[X] "users"
 [X] "versions"
 [ ] "watchers"
 [ ] "wiki_contents"
@@ -229,12 +229,48 @@ function transformIssueObject(issue) {
 	console.log('Cleaning projects');
 	await openProjectPool.query('DELETE FROM projects');
 
+	console.log('Cleaning users');
+	await openProjectPool.query('DELETE FROM user_preferences WHERE id > 3'); // Only keep System, Admin and Anonymous
+	await openProjectPool.query('DELETE FROM user_passwords WHERE id > 3'); // Only keep System, Admin and Anonymous
+	await openProjectPool.query('DELETE FROM users WHERE id > 3'); // Only keep System, Admin and Anonymous
+
 	OPEnum = (await openProjectPool.query('SELECT * FROM enumerations')).rows;
 	RedmineEnum = (await redminePool.query('SELECT * FROM enumerations')).rows;
 
 	/**
 	 * Migrate data
 	 */
+	console.log('Inserting users');
+	const RedmineUsersList = (await redminePool.query('SELECT * FROM users')).rows;
+	const RedmineEmailAddresses = (await redminePool.query('SELECT * FROM email_addresses')).rows;
+	for(const RedmineUser of RedmineUsersList) {
+		if(RedmineUser.id <= 4) {
+			continue; // Skip system users
+		}
+
+		const [query, values] = QueryBuilder.buildInsertQuery('users', ObjectConversion.RedmineUserToOpenProjectUser(RedmineUser, RedmineEmailAddresses.filter((elt) => elt.user_id === RedmineUser.id)[0].address));
+		await openProjectPool.query(query, values);
+
+		const [query2, values2] = QueryBuilder.buildInsertQuery('user_passwords', ObjectConversion.RedmineUserToOpenProjectUserPassword(RedmineUser));
+		await openProjectPool.query(query2, values2);
+
+		await openProjectPool.query('SELECT setval(\'users_id_seq\', $1, true);', [RedmineUser.id]);
+		await openProjectPool.query('SELECT setval(\'user_passwords_id_seq\', $1, true);', [RedmineUser.id]);
+	}
+
+	const RedmineUserPreferences = (await redminePool.query('SELECT * FROM user_preferences')).rows;
+	for(const RedmineUserPreference of RedmineUserPreferences) {
+		if(RedmineUserPreference.id <= 4) {
+			continue; // Skip system users
+		}
+
+		const [query, values] = QueryBuilder.buildInsertQuery('user_preferences', RedmineUserPreference); // No need to transform here
+		await openProjectPool.query(query, values);
+
+		await openProjectPool.query('SELECT setval(\'user_preferences_id_seq\', $1, true);', [RedmineUserPreference.id]);
+	}
+
+	console.log('Inserting trackers');
 	// Trackers
 	RedmineTrackersList = (await redminePool.query('SELECT * FROM trackers')).rows;
 	for(const RedmineTracker of RedmineTrackersList) {
@@ -246,7 +282,8 @@ function transformIssueObject(issue) {
 	}
 	OPTypesList = (await openProjectPool.query('SELECT * FROM types')).rows;
 
-	// Trackers
+	console.log('Inserting statuses');
+	// Statuses
 	RedmineStatusesList = (await redminePool.query('SELECT * FROM issue_statuses')).rows;
 	for(const RedmineStatus of RedmineStatusesList) {
 		if((await openProjectPool.query('SELECT * FROM statuses WHERE name = $1', [RedmineStatus.name])).rows.length === 0) {
