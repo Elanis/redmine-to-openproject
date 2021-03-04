@@ -160,4 +160,73 @@ export default class ObjectConversion {
 			type: 'UserPassword::SHA1'
 		};
 	}
+
+	static transformIssueObject(issue) {
+		// Tracker
+		const tracker = RedmineTrackersList.filter((elt) => elt.id == issue.tracker_id)[0];
+		if(typeof tracker === 'undefined' || typeof tracker.id === 'undefined') {
+			throw new Error('invalid tracker "' + issue.tracker_id + '".');
+		}
+
+		const type = OPTypesList.filter((elt) => elt.name === tracker.name)[0];
+		if(typeof type === 'undefined' || typeof type.id === 'undefined') {
+			throw new Error('invalid type "' + issue.tracker_id + '".');
+		}
+
+		// Status
+		const redstatus = RedmineStatusesList.filter((elt) => elt.id == issue.status_id)[0];
+		if(typeof redstatus === 'undefined' || typeof redstatus.id === 'undefined') {
+			throw new Error('invalid redmine status "' + issue.status_id + '".');
+		}
+
+		const opstatus = OPStatusesList.filter((elt) => elt.name === redstatus.name)[0];
+		if(typeof opstatus === 'undefined' || typeof opstatus.id === 'undefined') {
+			throw new Error('invalid openproject status "' + issue.status_id + '".');
+		}
+
+		// Enumerations
+		const redenum = RedmineEnum.filter((elt) => elt.id == issue.priority_id)[0];
+		if(typeof redenum === 'undefined' || typeof redenum.id === 'undefined') {
+			throw new Error('invalid redmine priority "' + issue.priority_id + '".');
+		}
+
+		const openum = OPEnum.filter((elt) => elt.name === priorities[redenum.name])[0];
+		if(typeof openum === 'undefined' || typeof openum.id === 'undefined') {
+			throw new Error('invalid openproject priority "' + issue.priority_id + '".');
+		}
+
+		return {
+			id: issue.id,
+			type_id: type.id,
+			project_id: issue.project_id,
+			subject: issue.subject,
+			description: issue.description,
+			due_date: issue.due_date,
+			category_id: issue.category_id,
+			status_id: opstatus.id,
+			assigned_to_id: issue.assigned_to_id,
+			priority_id: openum.id,
+			version_id: issue.fixed_version_id,
+			author_id: issue.author_id,
+			lock_version: issue.lock_version,
+			created_at: issue.created_on,
+			updated_at: issue.updated_on,
+			start_date: issue.start_date,
+			done_ratio: issue.done_ratio,
+			estimated_hours: issue.estimated_hours,
+			// ?: issue.parent_id, // Done with ObjectConversion.createParentRelationship() later
+			// ?: issue.root_id, // Relation system manage that
+			// ?: issue.lft, // Done with position
+			// ?: issue.rgt, // Done with position
+			// ?: issue.is_private, // !!! Not existing in openproject !!!
+			// ?: issue.closed_on, // Probably managed by history or based on last update
+			responsible_id: null,
+			budget_id: null,
+			position: issuePos++,
+			// story_points: @TODO: GET FROM SP TABLE if the plugin exists
+			// remaining_hours: TODO: CALCULATE
+			// derivated_estimated_hours: TODO: CALCULATE
+			schedule_manually: false,
+		};
+	}
 }
