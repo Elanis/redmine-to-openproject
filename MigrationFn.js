@@ -37,6 +37,13 @@ export default class MigrationFn {
 		await openProjectPool.query('DELETE FROM user_preferences WHERE id > 3'); // Only keep System, Admin and Anonymous
 		await openProjectPool.query('DELETE FROM user_passwords WHERE id > 3'); // Only keep System, Admin and Anonymous
 		await openProjectPool.query('DELETE FROM users WHERE id > 3'); // Only keep System, Admin and Anonymous
+
+		console.log('Cleaning wikis');
+		await openProjectPool.query('DELETE FROM wiki_redirects');
+		await openProjectPool.query('DELETE FROM wiki_pages');
+		await openProjectPool.query('DELETE FROM wiki_contents');
+		await openProjectPool.query('DELETE FROM wiki_content_journals');
+		await openProjectPool.query('DELETE FROM wikis');
 	}
 
 	static async users() {
@@ -220,6 +227,71 @@ export default class MigrationFn {
 			await openProjectPool.query('SELECT setval(\'time_entries_id_seq\', $1, true);', [parseInt(timeEntriesList[timeEntriesList.length - 1].id) + 1]);
 		} else {
 			await openProjectPool.query('SELECT setval(\'time_entries_id_seq\', $1, true);', [1]);
+		}
+	}
+
+	static async wiki() {
+		console.log('Inserting wikis ...');
+
+		// wikis
+		for(const wiki of (await redminePool.query('SELECT * FROM wikis')).rows) {
+			const [query, values] = QueryBuilder.buildInsertQuery('wikis', {
+				...wiki,
+				created_at: DEFAULT_CREATED_DATE,
+				updated_at: DEFAULT_UPDATED_DATE
+			});
+			await openProjectPool.query(query, values);
+		}
+
+		// wiki_redirects
+		for(const wiki_redirect of (await redminePool.query('SELECT * FROM wiki_redirects')).rows) {
+			wiki_redirect.created_at = wiki_redirect.created_on;
+			delete wiki_redirect.created_on;
+
+			const [query, values] = QueryBuilder.buildInsertQuery('wiki_redirects', {
+				...wiki_redirect,
+				redirects_to_wiki_id: wiki_redirect.id,
+			});
+			await openProjectPool.query(query, values);
+		}
+
+		// wiki_pages
+		for(const wiki_page of (await redminePool.query('SELECT * FROM wiki_pages')).rows) {
+			wiki_page.created_at = wiki_page.created_on;
+			delete wiki_page.created_on;
+
+			const [query, values] = QueryBuilder.buildInsertQuery('wiki_pages', {
+				...wiki_page,
+				slug: wiki_page.title.replaceAll(' ', '-').toLowerCase(),
+				updated_at: DEFAULT_UPDATED_DATE
+			});
+			await openProjectPool.query(query, values);
+		}
+
+		// wiki_contents
+		for(const wiki_content of (await redminePool.query('SELECT * FROM wiki_contents')).rows) {
+			wiki_content.updated_at = wiki_content.updated_on;
+			delete wiki_content.updated_on;
+
+			wiki_content.lock_version = wiki_content.version;
+			delete wiki_content.version;
+
+			wiki_content.comments = '';
+
+			const [query, values] = QueryBuilder.buildInsertQuery('wiki_contents', wiki_content);
+			await openProjectPool.query(query, values);
+		}
+
+		// wiki_content_versions
+		for(const wiki_content_versions of (await redminePool.query('SELECT * FROM wiki_content_versions')).rows) {
+			const [query, values] = QueryBuilder.buildInsertQuery('wiki_content_versions', {
+				id: wiki_content_versions.id,
+				journal_id: wiki_content_versions.wiki_content_id,
+				page_id: wiki_content_versions.page_id,
+				author_id: wiki_content_versions.author_id,
+				text: wiki_content_versions.data
+			});
+			await openProjectPool.query(query, values);
 		}
 	}
 }

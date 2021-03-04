@@ -93,16 +93,16 @@ TABLES TO MIGRATE:
 [ ] "settings"
 [ ] "tokens"
 [X] "user_preferences"
-[ ] "wiki_content_versions"
+[X] "wiki_content_versions"
 [X] "users"
 [X] "versions"
 [ ] "watchers"
-[ ] "wiki_contents"
+[X] "wiki_contents"
 [X] "time_entries"
-[ ] "wiki_pages"
+[X] "wiki_pages"
 [X] "trackers"
-[ ] "wiki_redirects"
-[ ] "wikis"
+[X] "wiki_redirects"
+[X] "wikis"
 [ ] "workflows"
 [ ] "agile_data"
 [ ] "agile_colors"
@@ -151,4 +151,5 @@ global.issuePos = 0;
 	await MigrationFn.projects();
 	await MigrationFn.issues();
 	await MigrationFn.timeEntries();
+	await MigrationFn.wiki();
 })();
