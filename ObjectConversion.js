@@ -161,29 +161,35 @@ export default class ObjectConversion {
 		};
 	}
 
-	static transformIssueObject(issue) {
-		// Tracker
-		const tracker = RedmineTrackersList.filter((elt) => elt.id == issue.tracker_id)[0];
-		if(typeof tracker === 'undefined' || typeof tracker.id === 'undefined') {
-			throw new Error('invalid tracker "' + issue.tracker_id + '".');
-		}
-
-		const type = OPTypesList.filter((elt) => elt.name === tracker.name)[0];
-		if(typeof type === 'undefined' || typeof type.id === 'undefined') {
-			throw new Error('invalid type "' + issue.tracker_id + '".');
-		}
-
-		// Status
-		const redstatus = RedmineStatusesList.filter((elt) => elt.id == issue.status_id)[0];
+	static getOPStatusIdFromRedmineStatusId(status_id) {
+		const redstatus = RedmineStatusesList.filter((elt) => elt.id == status_id)[0];
 		if(typeof redstatus === 'undefined' || typeof redstatus.id === 'undefined') {
-			throw new Error('invalid redmine status "' + issue.status_id + '".');
+			throw new Error('invalid redmine status "' + status_id + '".');
 		}
 
 		const opstatus = OPStatusesList.filter((elt) => elt.name === redstatus.name)[0];
 		if(typeof opstatus === 'undefined' || typeof opstatus.id === 'undefined') {
-			throw new Error('invalid openproject status "' + issue.status_id + '".');
+			throw new Error('invalid openproject status "' + status_id + '".');
 		}
 
+		return opstatus.id;
+	}
+
+	static getOPTypeIdFromRedmineTrackerId(tracker_id) {
+		const tracker = RedmineTrackersList.filter((elt) => elt.id == tracker_id)[0];
+		if(typeof tracker === 'undefined' || typeof tracker.id === 'undefined') {
+			throw new Error('invalid tracker "' + tracker_id + '".');
+		}
+
+		const type = OPTypesList.filter((elt) => elt.name === tracker.name)[0];
+		if(typeof type === 'undefined' || typeof type.id === 'undefined') {
+			throw new Error('invalid type "' + tracker_id + '".');
+		}
+
+		return type.id;
+	}
+
+	static transformIssueObject(issue) {
 		// Enumerations
 		const redenum = RedmineEnum.filter((elt) => elt.id == issue.priority_id)[0];
 		if(typeof redenum === 'undefined' || typeof redenum.id === 'undefined') {
@@ -197,13 +203,13 @@ export default class ObjectConversion {
 
 		return {
 			id: issue.id,
-			type_id: type.id,
+			type_id: ObjectConversion.getOPTypeIdFromRedmineTrackerId(issue.tracker_id),
 			project_id: issue.project_id,
 			subject: issue.subject,
 			description: issue.description,
 			due_date: issue.due_date,
 			category_id: issue.category_id,
-			status_id: opstatus.id,
+			status_id: ObjectConversion.getOPStatusIdFromRedmineStatusId(issue.status_id),
 			assigned_to_id: issue.assigned_to_id,
 			priority_id: openum.id,
 			version_id: issue.fixed_version_id,

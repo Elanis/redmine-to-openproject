@@ -3,6 +3,9 @@ import QueryBuilder from './QueryBuilder.js';
 
 export default class MigrationFn {
 	static async cleanup() {
+		console.log('Cleaning workflows');
+		await openProjectPool.query('DELETE FROM workflows');
+
 		console.log('Cleaning enabled_modules');
 		await openProjectPool.query('DELETE FROM enabled_modules');
 
@@ -290,6 +293,29 @@ export default class MigrationFn {
 				page_id: wiki_content_versions.page_id,
 				author_id: wiki_content_versions.author_id,
 				text: wiki_content_versions.data
+			});
+			await openProjectPool.query(query, values);
+		}
+	}
+
+	static async workflows() {
+		console.log('Inserting workflows ...');
+
+		// REDMINE:
+		// id, tracker_id, old_status_id, new_status_id, role_id, assignee, author, type, field_name, rule
+		//
+		// OPENPROJECT:
+		// id, type_id, old_status_id, new_status_id, role_id, assignee, author
+
+		for(const workflow of (await redminePool.query('SELECT * FROM workflows')).rows) {
+			const [query, values] = QueryBuilder.buildInsertQuery('workflows', {
+				id: workflow.id,
+				type_id: ObjectConversion.getOPTypeIdFromRedmineTrackerId(workflow.tracker_id),
+				old_status_id: workflow.old_status_id == 0 ? 0 : ObjectConversion.getOPStatusIdFromRedmineStatusId(workflow.old_status_id),
+				new_status_id: workflow.new_status_id == 0 ? 0 : ObjectConversion.getOPStatusIdFromRedmineStatusId(workflow.new_status_id),
+				role_id: workflow.role_id,
+				assignee: (workflow.assignee == 1) ? 2 : workflow.assignee,
+				author: (workflow.author == 1) ? 2 : workflow.author
 			});
 			await openProjectPool.query(query, values);
 		}

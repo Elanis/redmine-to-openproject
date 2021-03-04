@@ -47,6 +47,9 @@ global.modules = [
 
 /**
 TABLES TO MIGRATE:
+[ ] "agile_data"
+[ ] "agile_colors"
+[ ] "agile_sprints"
 [ ] "ar_internal_metadata"
 [ ] "attachments"
 [ ] "auth_sources"
@@ -55,6 +58,9 @@ TABLES TO MIGRATE:
 [ ] "changeset_parents"
 [ ] "changesets"
 [ ] "changesets_issues"
+[ ] "checklist_template_categories"
+[ ] "checklist_templates"
+[ ] "checklists"
 [ ] "comments"
 [ ] "custom_field_enumerations"
 [ ] "custom_fields"
@@ -78,10 +84,10 @@ TABLES TO MIGRATE:
 [X] "member_roles"
 [X] "members"
 [ ] "messages"
+[ ] "messenger_settings"
 [ ] "news"
 [ ] "open_id_authentication_associations"
 [ ] "open_id_authentication_nonces"
-[ ] "messenger_settings"
 [X] "projects"
 [X] "projects_trackers"
 [ ] "queries"
@@ -91,27 +97,21 @@ TABLES TO MIGRATE:
 [ ] "roles_managed_roles"
 [ ] "schema_migrations"
 [ ] "settings"
+[ ] "tags"
+[ ] "taggings"
+[X] "time_entries"
 [ ] "tokens"
+[X] "trackers"
 [X] "user_preferences"
-[X] "wiki_content_versions"
 [X] "users"
+[X] "wiki_content_versions"
 [X] "versions"
 [ ] "watchers"
 [X] "wiki_contents"
-[X] "time_entries"
 [X] "wiki_pages"
-[X] "trackers"
 [X] "wiki_redirects"
 [X] "wikis"
-[ ] "workflows"
-[ ] "agile_data"
-[ ] "agile_colors"
-[ ] "agile_sprints"
-[ ] "checklist_template_categories"
-[ ] "checklist_templates"
-[ ] "checklists"
-[ ] "tags"
-[ ] "taggings"
+[X] "workflows"
 **/
 
 // CODE
@@ -152,4 +152,5 @@ global.issuePos = 0;
 	await MigrationFn.issues();
 	await MigrationFn.timeEntries();
 	await MigrationFn.wiki();
+	await MigrationFn.workflows();
 })();
